@@ -1,6 +1,6 @@
-# Anunciador
+# Announcer
 
-Un anunciador simple para **Luanti** que permite enviar anuncios automáticamente en tu servidor cada cierto tiempo.
+Un mod simple para **Luanti** que permite enviar anuncios automáticamente en tu servidor cada cierto tiempo.
 
 ## Información
 
@@ -10,15 +10,15 @@ Un anunciador simple para **Luanti** que permite enviar anuncios automáticament
 
 ## Características
 
-* Envía anuncios automáticamente cada cierto tiempo.
-* Permite establecer el intervalo en minutos.
-* Soporta colores mediante códigos.
-* Fácil de configurar y utilizar.
-* Diseñado para servidores de Luanti.
+* Envía anuncios automáticamente cada X minutos.
+* Permite elegir el color de cada anuncio.
+* Puedes consultar todos los anuncios configurados.
+* Puedes eliminar anuncios individualmente mediante su ID.
+* Soporta colores utilizando `@` y la letra correspondiente al color.
 
 ## Uso
 
-Utiliza el siguiente comando:
+Para crear un anuncio:
 
 ```text
 /anunciar <color en inglés> <tiempo en minutos> <mensaje>
@@ -30,11 +30,13 @@ Utiliza el siguiente comando:
 /Anunciar red 10 ¡Bienvenidos! Disfruten el servidor.
 ```
 
-En este ejemplo, el mensaje se enviará cada **10 minutos** utilizando el color rojo.
+Este comando creará un anuncio de color **rojo** que se enviará cada **10 minutos**.
 
 ## Colores
 
-Puedes utilizar códigos de color mediante `@` seguido de la letra correspondiente.
+Los colores pueden utilizarse mediante su nombre en inglés.
+
+También puedes utilizar `@` seguido de la letra correspondiente al color.
 
 Por ejemplo:
 
@@ -44,16 +46,48 @@ Por ejemplo:
 
 Donde:
 
-* `w` = **white** = blanco
+```text
+w = white = blanco
+```
 
-Puedes utilizar el color que quieras siempre que esté disponible en el mod.
+## Ver tus anuncios
+
+Para consultar los anuncios que tienes configurados, utiliza:
+
+```text
+/anuncios
+```
+
+El mod mostrará una lista similar a esta:
+
+```text
+1. Cada 1 min - Color: red - Mensaje: "Hola"
+```
+
+El número al principio de cada anuncio es su **ID**.
+
+## Eliminar un anuncio
+
+Para eliminar un anuncio, utiliza:
+
+```text
+/borraranuncio <id>
+```
+
+Por ejemplo, si quieres eliminar el anuncio número `1`:
+
+```text
+/borraranuncio 1
+```
+
+El anuncio será eliminado.
 
 ## Licencia
 
-Este mod está distribuido bajo los términos de la **GNU General Public License v3.0 (GPLv3)**.
+Este mod está disponible bajo los términos de la **GNU General Public License v3.0 (GPLv3)**.
 
-Puedes utilizarlo, modificarlo y redistribuirlo de acuerdo con los términos establecidos por dicha licencia.
+Consulta el archivo `LICENSE` incluido con el mod para conocer los términos completos de la licencia.
 
 ---
 
-**Disfruten del mod.**
+¡Disfruten el mod y de sus anuncios!
