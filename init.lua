@@ -1,6 +1,7 @@
 -- Mod: Anuncios periódicos con colores dinámicos (códigos @w, @r, etc.)
 -- Solo jugadores con privilegio "server" pueden usar los comandos.
 -- Persistencia en archivo JSON.
+-- Version 1.0.1
 
 local modpath = minetest.get_modpath(minetest.get_current_modname())
 local storage_path = minetest.get_worldpath() .. "/anuncios.json"
@@ -54,64 +55,49 @@ if byte_pos > #text then return nil, 0 end
                                     local len = #texto
 
                                     while pos <= len do
-                                        -- Buscar el siguiente '@'
                                         local start = texto:find("@", pos, true)
                                         if not start then
-                                            -- Agregar el resto con el color actual
                                             if pos <= len then
                                                 table.insert(resultado, minetest.colorize(color_actual, texto:sub(pos)))
                                                 end
                                                 break
                                                 end
 
-                                                -- Texto antes del '@'
                                                 if start > pos then
                                                     table.insert(resultado, minetest.colorize(color_actual, texto:sub(pos, start - 1)))
                                                     end
 
-                                                    -- Verificar si hay un siguiente carácter completo
                                                     local next_char, next_len = get_char_info(texto, start + 1)
                                                     if not next_char then
-                                                        -- '@' al final, agregar literal
                                                         table.insert(resultado, minetest.colorize(color_actual, "@"))
                                                         pos = start + 1
-                                                        -- continuar
                                                         else
-                                                            -- Escape '@@' -> arroba literal
                                                             if next_char == "@" then
                                                                 table.insert(resultado, minetest.colorize(color_actual, "@"))
                                                                 pos = start + 1 + next_len
-                                                                -- continuar
                                                                 else
-                                                                    -- Intentar interpretar código
                                                                     local color_nuevo = nil
                                                                     local avance = 0
 
-                                                                    -- Código abreviado (ej. @w)
                                                                     if color_map[next_char] then
                                                                         color_nuevo = color_map[next_char]
-                                                                        avance = 1 + next_len  -- saltar el '@' y el carácter
+                                                                        avance = 1 + next_len
                                                                         else
-                                                                            -- Código personalizado: @c(#RRGGBB) o @(#RRGGBB)
                                                                             if next_char == "c" or next_char == "(" then
                                                                                 local paren_start = start + 1 + next_len
                                                                                 if next_char == "c" then
-                                                                                    -- Verificar si el siguiente carácter es '('
                                                                                     local char_despues_c, len_c = get_char_info(texto, start + 1 + next_len)
                                                                                     if char_despues_c == "(" then
-                                                                                        paren_start = start + 1 + next_len  -- posición de '('
+                                                                                        paren_start = start + 1 + next_len
                                                                                         else
-                                                                                            -- No es paréntesis, tratar "@c" como texto
                                                                                             table.insert(resultado, minetest.colorize(color_actual, "@c"))
                                                                                             pos = start + 1 + next_len
                                                                                             goto continue
                                                                                             end
                                                                                             else
-                                                                                                -- Ya estamos en '('
                                                                                                 paren_start = start + 1 + next_len
                                                                                                 end
 
-                                                                                                -- Buscar el ')' de cierre
                                                                                                 local fin = texto:find(")", paren_start + 1, true)
                                                                                                 if fin then
                                                                                                     local hex = texto:sub(paren_start + 1, fin - 1)
@@ -119,31 +105,26 @@ if byte_pos > #text then return nil, 0 end
                                                                                                         color_nuevo = hex
                                                                                                         avance = fin - start + 1
                                                                                                         else
-                                                                                                            -- No es hex válido, tratar como texto literal
                                                                                                             table.insert(resultado, minetest.colorize(color_actual, texto:sub(start, fin)))
                                                                                                             pos = fin + 1
                                                                                                             goto continue
                                                                                                             end
                                                                                                             else
-                                                                                                                -- No se encontró cierre, tratar todo como texto
                                                                                                                 table.insert(resultado, minetest.colorize(color_actual, texto:sub(start)))
                                                                                                                 pos = len + 1
                                                                                                                 goto continue
                                                                                                                 end
                                                                                                                 else
-                                                                                                                    -- Código no reconocido, tratar "@x" como texto literal
                                                                                                                     table.insert(resultado, minetest.colorize(color_actual, "@" .. next_char))
                                                                                                                     pos = start + 1 + next_len
                                                                                                                     goto continue
                                                                                                                     end
                                                                                                                     end
 
-                                                                                                                    -- Si se encontró un color nuevo, actualizar y avanzar
                                                                                                                     if color_nuevo then
                                                                                                                         color_actual = color_nuevo
                                                                                                                         pos = start + avance
                                                                                                                         else
-                                                                                                                            -- Por seguridad, avanzar al menos 1
                                                                                                                             pos = start + 1
                                                                                                                             end
                                                                                                                             ::continue::
@@ -166,69 +147,108 @@ if byte_pos > #text then return nil, 0 end
                                                                                                                                     if content and content ~= "" then
                                                                                                                                         local data = minetest.parse_json(content)
                                                                                                                                         if data and type(data) == "table" then
+                                                                                                                                            -- Asegurar que cada anuncio tenga color y datos válidos
                                                                                                                                             for _, ann in ipairs(data) do
                                                                                                                                                 if not ann.color or ann.color == "" then
                                                                                                                                                     ann.color = "#FFFFFF"
                                                                                                                                                     end
-                                                                                                                                                    end
-                                                                                                                                                    anuncios.lista = data
-                                                                                                                                                    for _, ann in ipairs(anuncios.lista) do
-                                                                                                                                                        anuncios.programar(ann)
+                                                                                                                                                    if not ann.intervalo or ann.intervalo < 1 then
+                                                                                                                                                        ann.intervalo = 5 -- valor por defecto
                                                                                                                                                         end
-                                                                                                                                                        return
-                                                                                                                                                        end
-                                                                                                                                                        end
-                                                                                                                                                        end
-                                                                                                                                                        anuncios.lista = {}
-                                                                                                                                                        end,
-
-                                                                                                                                                        -- Guarda la lista en el archivo JSON
-                                                                                                                                                        guardar = function()
-                                                                                                                                                        local data = minetest.write_json(anuncios.lista)
-                                                                                                                                                        if data then
-                                                                                                                                                            local file = io.open(storage_path, "w")
-                                                                                                                                                            if file then
-                                                                                                                                                                file:write(data)
-                                                                                                                                                                file:close()
-                                                                                                                                                                end
-                                                                                                                                                                end
-                                                                                                                                                                end,
-
-                                                                                                                                                                -- Programa el próximo envío de un anuncio
-                                                                                                                                                                programar = function(ann)
-                                                                                                                                                                if ann.timer then
-                                                                                                                                                                    ann.timer:cancel()
-                                                                                                                                                                    ann.timer = nil
+                                                                                                                                                        if not ann.mensaje or ann.mensaje == "" then
+                                                                                                                                                            ann.mensaje = "(anuncio vacío)"
+                                                                                                                                                            end
+                                                                                                                                                            -- Eliminar cualquier timer residual (no se guarda)
+                                                                                                                                                            ann.timer = nil
+                                                                                                                                                            end
+                                                                                                                                                            anuncios.lista = data
+                                                                                                                                                            minetest.log("action", "[anuncios] Cargados " .. #anuncios.lista .. " anuncios desde JSON.")
+                                                                                                                                                            -- Programar cada anuncio con manejo de errores
+                                                                                                                                                            for _, ann in ipairs(anuncios.lista) do
+                                                                                                                                                                local ok, err = pcall(anuncios.programar, anuncios, ann)
+                                                                                                                                                                if not ok then
+                                                                                                                                                                    minetest.log("warning", "[anuncios] Error al programar anuncio: " .. tostring(err))
                                                                                                                                                                     end
-                                                                                                                                                                    local interval_sec = ann.intervalo * 60
-                                                                                                                                                                    ann.timer = minetest.after(interval_sec, function()
-                                                                                                                                                                    anuncios.enviar(ann)
-                                                                                                                                                                    end)
-                                                                                                                                                                    end,
-
-                                                                                                                                                                    -- Envía el mensaje con el prefijo "Servidor: " y colores dinámicos
-                                                                                                                                                                    enviar = function(ann)
-                                                                                                                                                                    local color_base = ann.color or "#FFFFFF"
-                                                                                                                                                                    local prefijo = minetest.colorize(color_base, "Servidor: ")
-                                                                                                                                                                    local mensaje_procesado = parsear_colores(ann.mensaje, color_base)
-                                                                                                                                                                    minetest.chat_send_all(prefijo .. mensaje_procesado)
-                                                                                                                                                                    anuncios.programar(ann)
-                                                                                                                                                                    end,
-
-                                                                                                                                                                    -- Agrega un nuevo anuncio
-                                                                                                                                                                    agregar = function(color, intervalo, mensaje)
-                                                                                                                                                                    if not color or color == "" then
-                                                                                                                                                                        color = "#FFFFFF"
+                                                                                                                                                                    end
+                                                                                                                                                                    return
+                                                                                                                                                                    else
+                                                                                                                                                                        minetest.log("warning", "[anuncios] El archivo JSON está vacío o corrupto.")
                                                                                                                                                                         end
-                                                                                                                                                                        local ann = {
-                                                                                                                                                                            color = color,
-                                                                                                                                                                            intervalo = intervalo,
-                                                                                                                                                                            mensaje = mensaje
-                                                                                                                                                                        }
-                                                                                                                                                                        table.insert(anuncios.lista, ann)
-                                                                                                                                                                        anuncios.guardar()
-                                                                                                                                                                        anuncios.programar(ann)
                                                                                                                                                                         end
+                                                                                                                                                                        end
+                                                                                                                                                                        anuncios.lista = {}
+                                                                                                                                                                        minetest.log("action", "[anuncios] No se encontraron anuncios previos, lista vacía.")
+                                                                                                                                                                        end,
+
+                                                                                                                                                                        -- Guarda la lista en el archivo JSON (excluyendo el campo 'timer')
+                                                                                                                                                                        guardar = function()
+                                                                                                                                                                        -- Crear una copia de la lista sin el campo 'timer'
+                                                                                                                                                                        local lista_para_guardar = {}
+                                                                                                                                                                        for _, ann in ipairs(anuncios.lista) do
+                                                                                                                                                                            table.insert(lista_para_guardar, {
+                                                                                                                                                                                color = ann.color,
+                                                                                                                                                                                intervalo = ann.intervalo,
+                                                                                                                                                                                mensaje = ann.mensaje
+                                                                                                                                                                            })
+                                                                                                                                                                            end
+                                                                                                                                                                            local data = minetest.write_json(lista_para_guardar)
+                                                                                                                                                                            if data then
+                                                                                                                                                                                local file = io.open(storage_path, "w")
+                                                                                                                                                                                if file then
+                                                                                                                                                                                    file:write(data)
+                                                                                                                                                                                    file:close()
+                                                                                                                                                                                    minetest.log("action", "[anuncios] Guardados " .. #anuncios.lista .. " anuncios en JSON.")
+                                                                                                                                                                                    else
+                                                                                                                                                                                        minetest.log("error", "[anuncios] No se pudo abrir el archivo para guardar.")
+                                                                                                                                                                                        end
+                                                                                                                                                                                        else
+                                                                                                                                                                                            minetest.log("error", "[anuncios] Error al convertir la lista a JSON.")
+                                                                                                                                                                                            end
+                                                                                                                                                                                            end,
+
+                                                                                                                                                                                            -- Programa el próximo envío de un anuncio
+                                                                                                                                                                                            programar = function(ann)
+                                                                                                                                                                                            if ann.timer then
+                                                                                                                                                                                                ann.timer:cancel()
+                                                                                                                                                                                                ann.timer = nil
+                                                                                                                                                                                                end
+                                                                                                                                                                                                local interval_sec = ann.intervalo * 60
+                                                                                                                                                                                                ann.timer = minetest.after(interval_sec, function()
+                                                                                                                                                                                                anuncios.enviar(ann)
+                                                                                                                                                                                                end)
+                                                                                                                                                                                                minetest.log("action", "[anuncios] Programado anuncio cada " .. ann.intervalo .. " min: " .. ann.mensaje)
+                                                                                                                                                                                                end,
+
+                                                                                                                                                                                                -- Envía el mensaje con el prefijo "Servidor: " y colores dinámicos
+                                                                                                                                                                                                enviar = function(ann)
+                                                                                                                                                                                                local color_base = ann.color or "#FFFFFF"
+                                                                                                                                                                                                local prefijo = minetest.colorize(color_base, "Servidor: ")
+                                                                                                                                                                                                local mensaje_procesado = parsear_colores(ann.mensaje, color_base)
+                                                                                                                                                                                                minetest.chat_send_all(prefijo .. mensaje_procesado)
+                                                                                                                                                                                                anuncios.programar(ann)
+                                                                                                                                                                                                end,
+
+                                                                                                                                                                                                -- Agrega un nuevo anuncio
+                                                                                                                                                                                                agregar = function(color, intervalo, mensaje)
+                                                                                                                                                                                                if not color or color == "" then
+                                                                                                                                                                                                    color = "#FFFFFF"
+                                                                                                                                                                                                    end
+                                                                                                                                                                                                    if not intervalo or intervalo < 1 then
+                                                                                                                                                                                                        intervalo = 5
+                                                                                                                                                                                                        end
+                                                                                                                                                                                                        if not mensaje or mensaje == "" then
+                                                                                                                                                                                                            mensaje = "(anuncio vacío)"
+                                                                                                                                                                                                            end
+                                                                                                                                                                                                            local ann = {
+                                                                                                                                                                                                                color = color,
+                                                                                                                                                                                                                intervalo = intervalo,
+                                                                                                                                                                                                                mensaje = mensaje
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                            table.insert(anuncios.lista, ann)
+                                                                                                                                                                                                            anuncios.guardar()
+                                                                                                                                                                                                            anuncios.programar(ann)
+                                                                                                                                                                                                            minetest.log("action", "[anuncios] Agregado nuevo anuncio: " .. mensaje)
+                                                                                                                                                                                                            end
                                                                                                                             }
 
                                                                                                                             -- Cargar anuncios al iniciar el servidor
@@ -284,7 +304,7 @@ if byte_pos > #text then return nil, 0 end
                                                                                                                                             end
                                                                                                                             })
 
-                                                                                                                            -- Comando para eliminar anuncio
+                                                                                                                            -- Comando para eliminar anuncio (renombrado a /borraranuncio, pero mantengo ambos para compatibilidad)
                                                                                                                             minetest.register_chatcommand("borraranuncio", {
                                                                                                                                 params = "<id>",
                                                                                                                                 description = "Elimina un anuncio por su ID.",
@@ -307,4 +327,14 @@ if byte_pos > #text then return nil, 0 end
                                                                                                                                             anuncios.guardar()
                                                                                                                                             return true, "Anuncio eliminado."
                                                                                                                                             end
+                                                                                                                            })
+
+                                                                                                                            -- También mantengo /anunciar_eliminar para quien lo prefiera
+                                                                                                                            minetest.register_chatcommand("anunciar_eliminar", {
+                                                                                                                                params = "<id>",
+                                                                                                                                description = "Elimina un anuncio por su ID.",
+                                                                                                                                privs = { server = true },
+                                                                                                                                func = function(name, param)
+                                                                                                                                return minetest.registered_chatcommands["borraranuncio"].func(name, param)
+                                                                                                                                end
                                                                                                                             })
